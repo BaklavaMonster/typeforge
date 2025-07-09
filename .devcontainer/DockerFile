@@ -1,0 +1,12 @@
+# Use the official .NET 9 SDK image as the base
+FROM mcr.microsoft.com/devcontainers/dotnet:9.0-bookworm
+
+# Set the working directory
+WORKDIR /workspaces
+
+# Install additional tools if needed (e.g., FAKE for F# build automation)
+# RUN dotnet tool install --global fake-cli
+# ENV PATH="${PATH}:/root/.dotnet/tools"
+
+# Ensure the .NET SDK is available
+RUN dotnet --version
