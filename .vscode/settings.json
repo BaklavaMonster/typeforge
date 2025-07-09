@@ -1,0 +1,8 @@
+{
+    "FSharp.inlayHints.typeAnnotations": true,
+    "editor.inlayHints.enabled": "offUnlessPressed",
+    "files.exclude": {
+        "**/bin": true,
+        "**/obj": true
+    }
+}
