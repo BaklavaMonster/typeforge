@@ -1,0 +1,7 @@
+# Use the official .NET 9 SDK image as the base
+FROM mcr.microsoft.com/devcontainers/dotnet:9.0-bookworm
+
+# Set the working directory
+WORKDIR /workspaces
+
+RUN dotnet --version
