@@ -2,7 +2,7 @@
 
 open Ast
 
-module Main =
+module Program =
     [<EntryPoint>]
     let main argv =
         let a: TypeIdentifier = {Name= ""}

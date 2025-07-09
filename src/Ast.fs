@@ -1,16 +1,16 @@
 module TypeForge.Ast
-  type TypeParameter = { Name: string; Kind: Kind }
 
-  and Kind =
+type TypeParameter = { Name: string; Kind: Kind }
+
+and Kind =
     | Star
     | Arrow of Kind * Kind
 
-  and TypeIdentifier = { Name: string }
+and TypeIdentifier = { Name: string }
 
-  and TypeVar =
-    { Name: string }
+and TypeVar = { Name: string }
 
-  and TypeExpr =
+and TypeExpr =
     | Primitive of PrimitiveType
     | Var of TypeVar
     | Lookup of TypeIdentifier
@@ -29,15 +29,15 @@ module TypeForge.Ast
     | Exclude of TypeExpr * TypeExpr
     | Rotate of TypeExpr
 
-  and FlattenArgs =
+and FlattenArgs =
     { Left: TypeBinding
       Right: TypeBinding }
 
-  and TypeBinding =
+and TypeBinding =
     { Identifier: TypeIdentifier
       Type: TypeExpr }
 
-  and TypeValue =
+and TypeValue =
     | Primitive of PrimitiveType
     | Var of TypeVar
     | Lookup of TypeIdentifier
@@ -51,7 +51,7 @@ module TypeForge.Ast
     | Set of TypeValue
     | Map of TypeValue * TypeValue
 
-  and PrimitiveType =
+and PrimitiveType =
     | Unit
     | Guid
     | Int

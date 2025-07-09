@@ -7,7 +7,7 @@
       "type": "process",
       "args": [
         "build",
-        "${workspaceFolder}/TypeForge.fsproj"
+        "${workspaceFolder}/src/TypeForge.fsproj"
       ],
       "problemMatcher": "$msCompile"
     }

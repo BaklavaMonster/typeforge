@@ -5,11 +5,11 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": ".NET Core Launch (console) - exe",
+            "name": "Build, Launch & Attach",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Debug/net9.0/TypeForge.exe",
+            "program": "${workspaceFolder}/src/bin/Debug/net9.0/TypeForge.exe",
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
