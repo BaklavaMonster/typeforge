@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
@@ -18,8 +18,9 @@
     <ProjectReference Include="..\src\TypeForge.fsproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="Tests.fs" />
-  </ItemGroup>
+  <ItemGroup><Compile Include="Evaluation.Tests.fs" />
+    
+    
+  <Compile Include="Validation.Tests.fs" /></ItemGroup>
 
 </Project>

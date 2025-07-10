@@ -7,6 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FSharp.Data" Version="6.6.0" />
+    <PackageReference Include="FsToolkit.ErrorHandling" Version="5.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="NUnit" Version="4.3.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
@@ -14,7 +16,9 @@
 
   <ItemGroup>
     <Compile Include="Ast.fs" />
-    <Compile Include="Workbench.fs" />
+    <Compile Include="Evaluation.fs" />
+    <Compile Include="Validation.fs" />
+    <Compile Include="Schema.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
