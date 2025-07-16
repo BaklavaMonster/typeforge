@@ -7,26 +7,22 @@ type KindEnv = Environment<Kind>
 let rec kindCheck (env: KindEnv) (expr: TypeExpr) : Result<Kind, string> =
     match expr with
     | TypeExpr.Primitive _ -> Ok Star
-    | TypeExpr.Var { Name = name } -> 
-        match KindEnv.get env name with 
-        | Ok kind -> Ok kind
-        | Error _ -> Kind.Arrow (Star,Star) |> Ok
-
-    | TypeExpr.Lookup { Name = name } -> 
-        match KindEnv.get env name with 
-        | Ok kind -> Ok kind
-        | Error _ -> Kind.Arrow (Star,Star) |> Ok
+    
+    | TypeExpr.Var { Name = name } ->  KindEnv.get env name 
+    | TypeExpr.Lookup { Name = name } -> KindEnv.get env name 
         
     | TypeExpr.List te -> kindCheck env te
     | TypeExpr.Set te -> kindCheck env te
 
     | TypeExpr.Lambda(tp, body) ->
+        // Creates an arrow between kind of type parameter and  kind of body
         (tp.Name, tp.Kind)
         |> KindEnv.put env
         |> Result.bind (fun mEnv -> kindCheck mEnv body)
         |> Result.map (fun bodyKind -> Kind.Arrow(tp.Kind, bodyKind))
 
     | TypeExpr.Apply(fn, arg) ->
+        // removes the left side of the lambda's arrow if the kinds match
         match kindCheck env fn, kindCheck env arg with
         | Ok(Kind.Arrow(paramKind, bodyKind)), Ok argKind when paramKind = argKind -> Ok bodyKind
         | Ok fnKind, Ok argKind (* when paramKind <> argKind *) -> Error "Lambda param cannot consume argument"
@@ -112,5 +108,4 @@ let rec kindCheck (env: KindEnv) (expr: TypeExpr) : Result<Kind, string> =
             else
                 sprintf "%i elements of Union have a different type than *" len |> Error
 
-    | TypeExpr.Exclude _ -> Error "Unimplemented"
 

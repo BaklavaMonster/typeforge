@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <PackageReference Include="FSharp.Data" Version="6.6.0" />
+    <PackageReference Include="FSharpPlus" Version="1.7.0" />
     <PackageReference Include="FsToolkit.ErrorHandling" Version="5.0.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="NUnit" Version="4.3.2" />

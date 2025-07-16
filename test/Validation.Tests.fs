@@ -74,38 +74,48 @@ module ArrowAndMap =
 
 module LambdaAndApply =
     //we build a lambda that returns a 3-uple of the argument
-        let lambda =
-            TypeExpr.Lambda (
-                {Name = "T"; Kind = Kind.Star},
-                TypeExpr.Tuple [ 
-                    TypeExpr.Var {Name = "T"};
-                    TypeExpr.Var {Name = "T"};
-                    TypeExpr.Var {Name = "T"}
-                ]
-            )
-        let apply =
+    let lambda =
+        TypeExpr.Lambda (
+            {Name = "T"; Kind = Kind.Star},
+            TypeExpr.Tuple [ 
+                TypeExpr.Var {Name = "T"};
+                TypeExpr.Var {Name = "T"};
+                TypeExpr.Var {Name = "T"}
+            ]
+        )
+    let apply =
+        TypeExpr.Apply (
+            lambda,
+            TypeExpr.Set (TypeExpr.Primitive Int)
+        )
+    [<Test>]
+    let ``Application of Lambda on arg returns *`` () = 
+        check env apply Star
+    [<Test>]
+    let ``Unresolved Lambda (in the wild) returns * -> *`` () = 
+        check env lambda (Kind.Arrow (Star,Star))
+
+    [<Test>]
+    let ``Check a nested case, 2 lambdas and their application returns *`` () =
+        let t = // on T
             TypeExpr.Apply (
-                lambda,
-                TypeExpr.Set (TypeExpr.Primitive Int)
+                TypeExpr.Lambda (
+                    {Name = "T"; Kind = Kind.Star},
+                    TypeExpr.Apply (
+                        TypeExpr.Lambda (
+                            {Name = "U"; Kind = Kind.Star},
+                            TypeExpr.Tuple [ 
+                                TypeExpr.Var {Name = "T"};
+                                TypeExpr.Var {Name = "U"};
+                            ]
+                        ),
+                    TypeExpr.Primitive Bool
+                    )
+                ),
+                TypeExpr.Primitive String
             )
 
-        [<Test>]
-        let ``Application of Lambda on arg returns *`` () = 
-            check env apply Star
-
-        [<Test>]
-        let ``Unresolved Lambda (in the wild) returns * -> *`` () = 
-            check env lambda (Kind.Arrow (Star,Star))
-
-
-
-
-
-
-
-
-
-
+        check env t Star
 
 // module Arrow =
 //     // Not as fun as arrow but a better place than Apply and Lambda

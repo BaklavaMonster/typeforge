@@ -3,6 +3,7 @@ module TypeForge.Tests.Evaluation
 open NUnit.Framework
 open TypeForge.Ast
 open TypeForge.Evaluation
+open FsToolkit.ErrorHandling
 
 
 let env: Environment<TypeExpr> = { map = Map.empty }
@@ -10,7 +11,7 @@ let env: Environment<TypeExpr> = { map = Map.empty }
 let check env t v =
     match typeEval env t with
     | Ok k when k = v -> ()
-    | x -> failwithf "Found %A, expected: %A" x v
+    | x -> failwithf "\n Found:    %A\n expected: %A" x v
 
 let checkFails env t =
     match typeEval env t with
@@ -22,7 +23,7 @@ module Primitive =
     let v = TypeValue.Primitive Int
 
     [<Test>]
-    let ``primitive p maps into primitive p`` () = check env t v
+    let ``Prmitive TypeExpr maps into Primitive TypeValue`` () = check env t v
 
 module Var =
     // This line essentially simulates what the apply case would add to the eval context.
@@ -30,17 +31,11 @@ module Var =
         EvalEnv.put env ("T", TypeExpr.Primitive Int)
         |> Result.defaultWith (fun _ -> failwith "")
 
-    [<Test>]
-    let ``var v maps into var v when context resolves TypeVar `` () =
-        let t = TypeExpr.Var { Name = "T" }
-        let v = TypeValue.Primitive Int
-        check mEnv t v
+    let t = TypeExpr.Var { Name = "T" }
+    let v = TypeValue.Primitive Int
 
     [<Test>]
-    let ``var v maps into var v when context does not contain name`` () =
-        let t = TypeExpr.Var { Name = "LadyGaga" }
-        let v = TypeValue.Var { Name = "LadyGaga" }
-        check mEnv t v
+    let ``Var TypeExpr maps into TypeValue when env contians TypeVar `` () = check mEnv t v
 
 module Lookup =
     // Things start to look interesting, as we have indirection
@@ -60,178 +55,142 @@ module Lookup =
         check mEnv t v
 
     [<Test>]
-    let ``Lookup in env fails to yield proper value`` () =
+    let ``Lookup in env fails and yields Error`` () =
         let t = TypeExpr.Lookup { Name = "WrongExpressionName" }
         checkFails env t
 
 module Arrow =
-    // Not as fun as arrow but a better place than Apply and Lambda
-    // these just represent function type from TypeExpr --> TypeExpr
+    // These just represent function type from TypeExpr --> TypeExpr
     // they can represent pretty much anything on both sides of the arrow.
     // As such they are pretty trivial
+    let t = TypeExpr.Arrow(TypeExpr.Primitive Int, TypeExpr.Primitive Bool)
+
+    let v = TypeValue.Arrow(TypeValue.Primitive Int, TypeValue.Primitive Bool)
     [<Test>]
-    let ``Arrow in TypeExpr maps to Arrow in TypeValue`` () =
-        let t = TypeExpr.Arrow(TypeExpr.Primitive Bool, TypeExpr.Var { Name = "VarName" })
-
-        let v =
-            TypeValue.Arrow(TypeValue.Primitive Bool, TypeValue.Var { Name = "VarName" })
-
-        check env t v
+    let ``Arrow in TypeExpr maps to Arrow in TypeValue`` () = check env t v
 
 module Record =
-    // fairly simple as well as we are just representing records
-    // F#
-    //   type MyRecord = {
-    //     age : int
-    //     isBiped : bool
-    //     name : string
-    //     hairColour : HairColour
-    //   }
+    let mEnv =
+        EvalEnv.put env ("HairColour", TypeExpr.Primitive String)
+        |> Result.defaultWith (fun _ -> failwith "")
+    let t =
+        TypeExpr.Record(
+            [ "age", TypeExpr.Primitive Int
+              "isBiped", TypeExpr.Primitive Bool
+              "name", TypeExpr.Primitive String
+              "hairColour", TypeExpr.Lookup { Name = "HairColour" } ]
+            |> Map.ofList
+        )
+    let v =
+        TypeValue.Record(
+            [ "age", TypeValue.Primitive Int
+              "isBiped", TypeValue.Primitive Bool
+              "name", TypeValue.Primitive String
+              "hairColour", TypeValue.Primitive String ]
+            |> Map.ofList
+        )
+
     [<Test>]
-    let ``Record TypeExpr with a single indirection resolves to ValueExpr`` () =
-        let mEnv =
-            EvalEnv.put env ("HairColour", TypeExpr.Primitive String)
-            |> Result.defaultWith (fun _ -> failwith "")
-
-        let t =
-            TypeExpr.Record(
-                [ "age", TypeExpr.Primitive Int
-                  "isBiped", TypeExpr.Primitive Bool
-                  "name", TypeExpr.Primitive String
-                  "hairColour", TypeExpr.Lookup { Name = "HairColour" } ]
-                |> Map.ofList
-            )
-
-        let v =
-            TypeValue.Record(
-                [ "age", TypeValue.Primitive Int
-                  "isBiped", TypeValue.Primitive Bool
-                  "name", TypeValue.Primitive String
-                  "hairColour", TypeValue.Primitive String ]
-                |> Map.ofList
-            )
-
-        check mEnv t v
+    let ``Record TypeExpr with a single indirection resolves to ValueExpr`` () =  check mEnv t v
 
 module Tuple =
     // Same deal as above but unnamed
+    let mEnv =
+        EvalEnv.put env ("HairColour", TypeExpr.Primitive String)
+        |> Result.defaultWith (fun _ -> failwith "")
+    let t =
+        TypeExpr.Tuple
+            [ TypeExpr.Primitive Int
+              TypeExpr.Primitive Bool
+              TypeExpr.Primitive String
+              TypeExpr.Lookup { Name = "HairColour" } ]
+    let v =
+        TypeValue.Tuple
+            [ TypeValue.Primitive Int
+              TypeValue.Primitive Bool
+              TypeValue.Primitive String
+              TypeValue.Primitive String ]
+              
     [<Test>]
     let ``Tuple TypeExpr with a single indirection resolves to ValueExpr`` () =
-        let mEnv =
-            EvalEnv.put env ("HairColour", TypeExpr.Primitive String)
-            |> Result.defaultWith (fun _ -> failwith "")
-
-        let t =
-            TypeExpr.Tuple
-                [ TypeExpr.Primitive Int
-                  TypeExpr.Primitive Bool
-                  TypeExpr.Primitive String
-                  TypeExpr.Lookup { Name = "HairColour" } ]
-
-        let v =
-            TypeValue.Tuple
-                [ TypeValue.Primitive Int
-                  TypeValue.Primitive Bool
-                  TypeValue.Primitive String
-                  TypeValue.Primitive String ]
-
         check mEnv t v
 
 module SetAndList =
     // pretty trivial
+
+    let tplTe = 
+        TypeExpr.Tuple
+            [ TypeExpr.Primitive Int
+              TypeExpr.Primitive Bool
+              TypeExpr.Primitive String
+              TypeExpr.Primitive String ]
+
+    let tplTv = 
+        TypeValue.Tuple
+            [ TypeValue.Primitive Int
+              TypeValue.Primitive Bool
+              TypeValue.Primitive String
+              TypeValue.Primitive String ]
+
     [<Test>]
     let ``List TypeExpr resolves to List ValueType`` () =
-        let t =
-            TypeExpr.List(
-                TypeExpr.Tuple
-                    [ TypeExpr.Primitive Int
-                      TypeExpr.Primitive Bool
-                      TypeExpr.Primitive String
-                      TypeExpr.Primitive String ]
-            )
-
-        let v =
-            TypeValue.List(
-                TypeValue.Tuple
-                    [ TypeValue.Primitive Int
-                      TypeValue.Primitive Bool
-                      TypeValue.Primitive String
-                      TypeValue.Primitive String ]
-            )
-
+        let t = TypeExpr.List tplTe
+        let v =  TypeValue.List tplTv 
         check env t v
 
     [<Test>]
     let ``Set TypeExpr resolves to Set TypeValue`` () =
-        let t =
-            TypeExpr.Set(
-                TypeExpr.Tuple
-                    [ TypeExpr.Primitive Int
-                      TypeExpr.Primitive Bool
-                      TypeExpr.Primitive String
-                      TypeExpr.Primitive String ]
-            )
-
-        let v =
-            TypeValue.Set(
-                TypeValue.Tuple
-                    [ TypeValue.Primitive Int
-                      TypeValue.Primitive Bool
-                      TypeValue.Primitive String
-                      TypeValue.Primitive String ]
-            )
+        let t = TypeExpr.Set tplTe
+        let v =  TypeValue.Set tplTv 
 
         check env t v
 
 module Sum =
     // Sum is the algebraic data type, equivalent to DU.
     // but that stuff does not really matter here :)
+    let t =
+        TypeExpr.Sum
+            [ TypeExpr.Primitive Int
+              TypeExpr.Primitive Bool
+              TypeExpr.Primitive String
+              TypeExpr.Primitive String ]
+
+    let v =
+        TypeValue.Sum
+            [ TypeValue.Primitive Int
+              TypeValue.Primitive Bool
+              TypeValue.Primitive String
+              TypeValue.Primitive String ]
     [<Test>]
-    let ``Sum TypeExpr resolves to Sum TypeValue`` () =
-        let t =
-            TypeExpr.Sum
-                [ TypeExpr.Primitive Int
-                  TypeExpr.Primitive Bool
-                  TypeExpr.Primitive String
-                  TypeExpr.Primitive String ]
-
-        let v =
-            TypeValue.Sum
-                [ TypeValue.Primitive Int
-                  TypeValue.Primitive Bool
-                  TypeValue.Primitive String
-                  TypeValue.Primitive String ]
-
-        check env t v
+    let ``Sum TypeExpr resolves to Sum TypeValue`` () = check env t v
 
 module Rotate =
+    let t =
+        TypeExpr.Rotate(
+            TypeExpr.Tuple [ TypeExpr.Primitive Int; TypeExpr.Primitive Bool; TypeExpr.Primitive String ]
+        )
+
+    let v = 
+        TypeValue.Tuple
+            [ TypeValue.Primitive Bool
+              TypeValue.Primitive String
+              TypeValue.Primitive Int ]
+
     [<Test>]
-    let ``Rotate TypeExpr rotates and resolves to Tuple TypeValue`` () =
-        let t =
-            TypeExpr.Rotate(
-                TypeExpr.Tuple [ TypeExpr.Primitive Int; TypeExpr.Primitive Bool; TypeExpr.Primitive String ]
-            )
-
-        let v = 
-            TypeValue.Tuple
-                [ TypeValue.Primitive Bool
-                  TypeValue.Primitive String
-                  TypeValue.Primitive Int ]
-
-        check env t v
+    let ``Rotate TypeExpr rotates and resolves to Tuple TypeValue`` () = check env t v
 
 module LambdaAndApply =
-    [<Test>]
-    let ``Lambda TypeExpr fails when outside an Apply`` () =
-        let t =
-            TypeExpr.Sum
-                [ TypeExpr.Primitive Int
-                  TypeExpr.Lambda({ Name = "T"; Kind = Star }, TypeExpr.Var { Name = "T" }) ]
-        let v = 
-            TypeValue.Sum
-                 [ TypeValue.Primitive Int
-                   TypeValue.Lambda({ Name = "T"; Kind = Star }, TypeExpr.Var { Name = "T" }) ]
+    let t =
+        TypeExpr.Sum
+            [ TypeExpr.Primitive Int
+              TypeExpr.Lambda({ Name = "T"; Kind = Star }, TypeExpr.Var { Name = "T" }) ]
+    let v = 
+        TypeValue.Sum
+             [ TypeValue.Primitive Int
+               TypeValue.Lambda({ Name = "T"; Kind = Star }, TypeExpr.Var { Name = "T" }) ]
 
+    [<Test>]
+    let ``Lambda TypeExpr is passed on when outside of Apply`` () =
         check env t v
 
     [<Test>]
@@ -245,7 +204,7 @@ module LambdaAndApply =
         check env t v
 
     [<Test>]
-    let ``Apply TypeExpr with no Lambda TypeExpr fails`` () =
+    let ``Apply TypeExpr with no Lambda TypeExpr fails`` ()=
         let te = TypeExpr.Primitive String
         let t = TypeExpr.Apply(te, te)
         checkFails env t
@@ -276,6 +235,62 @@ module LambdaAndApply =
             ]
 
         check env apply expectedOutput
+
+    [<Test>]
+    let ``Check a nested case, 2 lambdas and their application, or currying on 2 arguments`` () =
+        let t = // on T
+            TypeExpr.Apply (
+                TypeExpr.Lambda (
+                    {Name = "T"; Kind = Kind.Star},
+                    TypeExpr.Apply (
+                        TypeExpr.Lambda (
+                            {Name = "U"; Kind = Kind.Star},
+                            TypeExpr.Tuple [ 
+                                TypeExpr.Var {Name = "T"};
+                                TypeExpr.Var {Name = "U"};
+                            ]
+                        ),
+                    TypeExpr.Primitive Bool
+                    )
+                ),
+                TypeExpr.Primitive String
+            )
+
+        let expectedOutput = 
+            TypeValue.Tuple [ 
+                TypeValue.Primitive String
+                TypeValue.Primitive Bool
+                
+            ]
+
+        check env t expectedOutput
+
+    [<Test>]
+    let ``Lambda as argument of Lambda -> we can inject a type contructor in a type constructor (an identity, but still)`` () =
+        let identity = 
+            TypeExpr.Lambda ( // identity lambda
+                { Name = "T"; Kind = Kind.Arrow (Star,Star) },
+                TypeExpr.Var {Name = "T"};
+            )
+
+        let lambdaArg =
+            TypeExpr.Lambda (
+                { Name = "V"; Kind = Star },
+                TypeExpr.List (TypeExpr.Var {Name = "V"});
+            ) 
+
+        let apply =
+            TypeExpr.Apply (
+                identity,
+                lambdaArg
+            )
+
+        let o =  TypeValue.Lambda (
+                    { Name = "V"; Kind = Star },
+                    TypeExpr.List (TypeExpr.Var {Name = "V"});
+                )
+
+        check env apply o
 
 module KeyOf =
     let l =

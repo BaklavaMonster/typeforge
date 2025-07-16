@@ -25,23 +25,20 @@ and TypeExpr =
     | Map of TypeExpr * TypeExpr
     | KeyOf of TypeExpr
     | Sum of List<TypeExpr>
-    | Flatten of TypeExpr * TypeExpr
-    // | Flatten of FlattenArgs // remove this as it makes no sense
-    | Exclude of TypeExpr * TypeExpr
+    | Flatten of TypeExpr * TypeExpr // See README.md
+    // | Exclude of TypeExpr * TypeExpr,  See README.md
     | Rotate of TypeExpr
 
-// and FlattenArgs =
-//     { Left: TypeBinding
-//       Right: TypeBinding }
+and FlattenArgs =
+    { Left: TypeBinding
+      Right: TypeBinding }
 
-// and TypeBinding =
-//     { Identifier: TypeIdentifier
-//       Type: TypeExpr }
+and TypeBinding =
+    { Identifier: TypeIdentifier
+      Type: TypeExpr }
 
 and TypeValue =
     | Primitive of PrimitiveType
-    | Var of TypeVar
-    | Lookup of TypeIdentifier
     | Lambda of TypeParameter * TypeExpr
     | Arrow of TypeValue * TypeValue
     | Record of Map<string, TypeValue>
@@ -51,6 +48,9 @@ and TypeValue =
     | List of TypeValue
     | Set of TypeValue
     | Map of TypeValue * TypeValue
+    // See README.md
+    // | Var of TypeVar
+    // | Lookup of TypeIdentifier
 
 and PrimitiveType =
     | Unit
@@ -59,18 +59,15 @@ and PrimitiveType =
     | Decimal
     | Bool
     | String
-    | StringLiteral of string
-
-
+    | StringLiteral of string // // See README.md
 
 type Environment<'a> = {
     map : Map<string,'a>
 }
 with 
     static member get (env:Environment<'a>) k = 
-        match env.map.TryFind k with 
-        | Some v -> Ok v
-        | None -> sprintf "Could not find key %s in environment" k |> Error
+        env.map.TryFind k
+        |> FSharpPlus.Option.toResultWith (sprintf "Could not find key %s in environment" k)
 
     static member put (env:Environment<'a>) kvp =
         match env.map.ContainsKey (fst kvp) with
